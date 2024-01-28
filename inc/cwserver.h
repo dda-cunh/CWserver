@@ -17,11 +17,11 @@
 # define STD_ERR			2
 
 # ifndef SOCK_BUFFER_SIZE
-#  define SOCK_BUFFER_SIZE	35000
+#  define SOCK_BUFFER_SIZE	4096
 # endif
 
 # ifndef FILE_BUFFER_SIZE
-#  define FILE_BUFFER_SIZE	4096
+#  define FILE_BUFFER_SIZE	8192
 # endif
 
 # define HTTP_BAD_REQ		400

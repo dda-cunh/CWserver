@@ -20,8 +20,8 @@ void	dump_response(int client_fd, t_response *response)
 	if (response->body)
 		append_to_bytes(bytes, *(response->body));
 	write(client_fd, bytes->bytes, bytes->length);
-	bytes->bytes[bytes->length - 1] = '\0';
-	ut_putendl_fd(STD_OUT, (char *)bytes->bytes);
+	// bytes->bytes[bytes->length - 1] = '\0';
+	// ut_putendl_fd(STD_OUT, (char *)bytes->bytes);
 	bytes->dispose(bytes);
 	response->dispose(response);
 }

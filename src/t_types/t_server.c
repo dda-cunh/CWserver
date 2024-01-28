@@ -29,7 +29,6 @@ static void	server_up(t_server *server)
 		dump_response(client, parse_response(*request));
 		request->dispose(request);
 		close(client);
-		return ;
 	}
 }
 

@@ -114,23 +114,21 @@ t_request	*read_request(int client_fd)
 	t_request		*request;
 	long			bytes_read;
 
+	request = NULL;
 	ut_memset(buffer, 0, SOCK_BUFFER_SIZE);
 	bytes = t_byte_array_new();
-	bytes_read = 1;
-	while (bytes_read > 0)
+	bytes_read = read(client_fd, buffer, SOCK_BUFFER_SIZE);
+	if (bytes_read == -1)
 	{
-		bytes_read = read(client_fd, buffer, SOCK_BUFFER_SIZE);
-		if (bytes_read == -1)
-		{
-			ut_puterror("Server error", strerror(errno));
-			bytes->dispose(bytes);
-			return (NULL);
-		}
-		if (bytes_read == 0)
-			break ;
-		append_to_bytes(bytes, (t_byte_array){buffer, bytes_read, bytes_read, NULL});
+		ut_puterror("Server error", strerror(errno));
+		bytes->dispose(bytes);
+		return (NULL);
 	}
-	request = parse_request(bytes);
+	else
+	{
+		append_to_bytes(bytes, (t_byte_array){buffer, bytes_read, bytes_read, NULL});
+		request = parse_request(bytes);
+	}
 	bytes->dispose(bytes);
 	return (request);
 }
