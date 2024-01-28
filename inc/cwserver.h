@@ -2,7 +2,6 @@
 # define _CWSERVER_H_
 
 # include <netinet/in.h>
-#include <stddef.h>
 # include <sys/socket.h>
 # include <stdlib.h>
 # include <unistd.h>
@@ -23,6 +22,15 @@
 # ifndef FILE_BUFFER_SIZE
 #  define FILE_BUFFER_SIZE	8192
 # endif
+
+# ifndef SERVER_PORT
+#  define SERVER_PORT	8080
+# endif
+
+# ifndef SERVER_BACKLOG
+#  define SERVER_BACKLOG	10
+# endif
+
 
 # define HTTP_BAD_REQ		400
 # define HTTP_OK			200
