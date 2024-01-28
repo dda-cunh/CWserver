@@ -2,15 +2,18 @@
 
 static void	server_up(t_server *server)
 {
-	int	addr_len;
-	int	client;
+	t_request		*request;
+	int				addr_len;
+	int				client;
 
 	addr_len = sizeof(server->address);
+	ut_putendl_fd(STD_OUT, ANSI_COLOR_GREEN);
 	ut_putendl_fd(STD_OUT, "Server is up");
+	ut_putendl_fd(STD_OUT, ANSI_COLOR_RESET);
 	while (TRUE)
 	{
-		unsigned char	buffer[BUFFER_SIZE] = {0};
-		ut_putendl_fd(STD_OUT, "Waiting for connection...");
+		request = NULL;
+		ut_putendl_fd(server->logger_fd, "Waiting for connection...");
 		client = accept(server->socket,
 						(struct sockaddr *)&server->address,
 						(socklen_t *)&(addr_len));
@@ -19,20 +22,27 @@ static void	server_up(t_server *server)
 			ut_puterror("Server error", strerror(errno));
 			continue ;
 		}
-		ut_putendl_fd(STD_OUT, "Client connected");
-		read(client, buffer, BUFFER_SIZE);
-		ut_putendl_fd(1, (char *)buffer);
-		send_response(client, (t_response){(t_byte_array){(unsigned char *)"HTTP/1.1 200 OK\nContent-Type: text/html\n\n<html><body><h1>Hello, World!</h1></body></html>", 90}, "OK", "text/html", 200});
+		ut_putendl_fd(server->logger_fd, "Client connected");
+		request = read_request(client);
+		if (!request)
+			continue ;
+		dump_response(client, parse_response(*request));
+		request->dispose(request);
 		close(client);
 		return ;
 	}
 }
 
-void	t_server_del(t_server *server)
+static void	server_dispose(t_server *server)
 {
-	if (server->socket != -1)
-		close(server->socket);
-	free(server);
+	if (server)
+	{
+		if (server->socket != -1)
+			close(server->socket);
+		if (server->logger_fd != -1)
+			close(server->logger_fd);
+		free(server);
+	}
 }
 
 t_server	*t_server_new(unsigned long interface, int domain, int protocol,
@@ -53,24 +63,32 @@ t_server	*t_server_new(unsigned long interface, int domain, int protocol,
 	server->address.sin_addr.s_addr = htonl(interface);
 	server->address.sin_port = htons(port);
 	server->socket = socket(domain, service, protocol);
+	server->logger_fd = open("server.log", O_CREAT | O_WRONLY, 0644);
+	if (server->logger_fd == -1)
+	{
+		ut_puterror("Init server error", strerror(errno));
+		server_dispose(server);
+		return (NULL);
+	}
 	if (server->socket == -1)
 	{
 		ut_puterror("Init server error", strerror(errno));
-		t_server_del(server);
+		server_dispose(server);
 		return (NULL);
 	}
 	if (bind(server->socket, (struct sockaddr *)&server->address, sizeof(server->address)) == -1)
 	{
 		ut_puterror("Init server error", strerror(errno));
-		t_server_del(server);
+		server_dispose(server);
 		return (NULL);
 	}
 	if (listen(server->socket, backlog) == -1)
 	{
 		ut_puterror("Init server error", strerror(errno));
-		t_server_del(server);
+		server_dispose(server);
 		return (NULL);
 	}
+	server->dispose = server_dispose;
 	server->up = server_up;
 	return (server);
 }

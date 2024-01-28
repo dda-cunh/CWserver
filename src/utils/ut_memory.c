@@ -1,5 +1,15 @@
 #include "../../inc/cwserver.h"
 
+void	*ut_memset(void *s, int c, size_t n)
+{
+	unsigned char	*bytes;
+
+	bytes = (unsigned char *)s;
+	while (n--)
+		*bytes++ = (unsigned char)c;
+	return (s);
+}
+
 void	*ut_memmove(void *dest, const void *src, size_t n)
 {
 	unsigned char	*src_bytes;

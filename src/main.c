@@ -8,6 +8,6 @@ int main(void)
 	if (server == NULL)
 		return (EXIT_FAILURE);
 	server->up(server);
-	t_server_del(server);
+	server->dispose(server);
 	return (EXIT_SUCCESS);
 }

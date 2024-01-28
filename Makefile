@@ -20,9 +20,12 @@ UTILS_DIR	= 	utils/
 SRC			=	$(addprefix $(SRC_DIR),	main.c \
 										$(addprefix $(UTILS_DIR),	ut_memory.c \
 																	ut_num.c \
-																	ut_output.c) \
+																	ut_output.c \
+																	ut_string.c \
+																	ut_generic.c) \
 										$(addprefix $(TYPES_DIR),	t_response.c \
 																	t_server.c \
+																	t_request.c \
 																	t_byte_array.c))
 
 OBJ_DIRS	=	$(OBJ_DIR)	$(addprefix $(OBJ_DIR), $(TYPES_DIR)) \

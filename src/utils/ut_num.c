@@ -1,25 +1,35 @@
 #include "../../inc/cwserver.h"
 
-char	*ut_itoa(int i)
+static unsigned char	n_digs(long n)
 {
-	char	*str;
-	int		len;
-	int		neg;
+	if (n == 0)
+		return (0);
+	if (n < 0)
+		return (2 + n_digs(-n / 10));
+	return (1 + n_digs(n / 10));
+}
 
-	neg = (i < 0);
-	len = 1;
-	while (i /= 10)
-		len++;
-	str = (char *)malloc(sizeof(char) * (len + neg + 1));
-	if (!str)
+char	*ut_itoa(int n)
+{
+	unsigned char	len;
+	unsigned char	neg;
+	char			*a;
+
+	if (n == 0)
+		return (strdup("0"));
+	len = n_digs(n);
+	neg = 0;
+	if (n < 0)
+		neg = 1;
+	a = (char *) calloc(len + 1, sizeof(char));
+	if (!a)
 		return (NULL);
-	str[len + neg] = '\0';
-	while (len--)
+	while (n)
 	{
-		str[len + neg] = '0' + (neg ? -(i % 10) : (i % 10));
-		i /= 10;
+		a[--len] = abs(n % 10) + '0';
+		n /= 10;
 	}
 	if (neg)
-		str[0] = '-';
-	return (str);
+		a[--len] = '-';
+	return (a);
 }
