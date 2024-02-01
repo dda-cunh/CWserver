@@ -1,6 +1,7 @@
 #include "../../inc/cwserver.h"
+#include <string.h>
 
-void	dump_response(int client_fd, t_response *response)
+void	dump_response(int client_fd, t_response *response, t_server server)
 {
 	t_byte_array	*bytes;
 	char			*code_str;
@@ -20,8 +21,9 @@ void	dump_response(int client_fd, t_response *response)
 	if (response->body)
 		append_to_bytes(bytes, *(response->body));
 	write(client_fd, bytes->bytes, bytes->length);
-	// bytes->bytes[bytes->length - 1] = '\0';
-	// ut_putendl_fd(STD_OUT, (char *)bytes->bytes);
+	ut_putendl_fd(server.logger_fd, "Response sent");
+	ut_putendl_fd(server.logger_fd, response->content_type);
+	ut_putstr_fd(server.logger_fd, LOG_PACK);
 	bytes->dispose(bytes);
 	response->dispose(response);
 }
@@ -56,73 +58,16 @@ t_response	*t_response_new(t_byte_array *body, char *status_message,
 	return (response);
 }
 
-t_response	*parse_response(t_request request)
+t_response	*parse_response(t_request request, t_server server)
 {
-	t_byte_array	*body;
-	char			*status_message;
-	char			*content_type;
-	char			*path;
-	int				status_code;
-	int				fd;
-
-	body = NULL;
 	if (request.path == NULL)
-	{
-		status_message = strdup("Bad Request");
-		content_type = strdup("text/plain");
-		status_code = 400;
-	}
+		return (t_response_new(NULL, strdup("Internal Server Error"),
+								strdup("text/plain"), 500));
+	if (request.method == HTTP_GET)
+		return (get(request, server));
+	else if (request.method == HTTP_POST)
+		return (post(request));
 	else
-	{
-		if (strcmp(request.path, "/") == 0)
-			path = ut_strjoin(ROOT_PATH, "/index.html");
-		else
-			path = ut_strjoin(ROOT_PATH, request.path);
-		if (request.method == HTTP_GET)
-		{
-			fd = open(path, O_RDONLY);
-			free(path);
-			if (fd == -1)
-			{
-				status_message = strdup("Not Found");
-				content_type = strdup("text/plain");
-				status_code = 404;
-			}
-			else
-			{
-				body = read_all_from_file(fd);
-				close(fd);
-				status_message = strdup("OK");
-				content_type = strdup("text/html");
-				status_code = 200;
-			}
-		}
-		else if (request.method == HTTP_POST)
-		{
-			fd = open(path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-			free(path);
-			if (fd == -1)
-			{
-				status_message = strdup("Internal Server Error");
-				content_type = strdup("text/plain");
-				status_code = 500;
-			}
-			else
-			{
-				write(fd, request.body->bytes, request.body->length);
-				close(fd);
-				status_message = strdup("OK");
-				content_type = strdup("text/plain");
-				status_code = 200;
-			}
-		}
-		else
-		{
-			status_message = strdup("Method Not Allowed");
-			content_type = strdup("text/plain");
-			status_code = 405;
-			free(path);
-		}
-	}
-	return (t_response_new(body, status_message, content_type, status_code));
+		return (t_response_new(NULL, strdup("Method Not Allowed"),
+								strdup("text/plain"), 405));
 }

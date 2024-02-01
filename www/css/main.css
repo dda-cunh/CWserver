@@ -1,0 +1,138 @@
+body
+{
+	font-family: sans-serif;
+	color: #333;
+}
+
+a
+{
+	color: #2196f3;
+	text-decoration: none;
+	transition: color 0.2s ease-in-out;
+}
+
+a:hover
+{
+	color: #177ddc;
+}
+
+header
+{
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	position: fixed;
+    top: 0;
+	z-index: 1000;
+}
+
+body
+{
+	padding-top: 70px;
+}
+
+.navbar
+{
+	background-color: #fff;
+}
+
+.navbar-brand img
+{
+	width: auto;
+	height: 50px;
+}
+
+.nav-item
+{
+	margin-right: 15px;
+}
+
+/* Hero section */
+.hero-image
+{
+	border-radius: 5px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card
+{
+	border: none;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	transition: transform 0.2s ease-in-out;
+	/* Make all cards be in same height*/
+	display: flex;
+	flex-direction: column;
+}
+
+.card:hover
+{
+	transform: scale(1.02);
+}
+
+.owl-theme .owl-nav
+{
+	margin-top: 20px;
+}
+
+.owl-theme .owl-dots
+{
+	margin-top: 10px;
+}
+
+.owl-theme .owl-nav .owl-prev,
+.owl-theme .owl-nav .owl-next
+{
+	background-color: #fff;
+	border: none;
+	outline: none;
+	padding: 0 10px;
+	margin: 0 5px;
+	border-radius: 50%;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	transition: background-color 0.2s ease-in-out;
+}
+
+.owl-theme .owl-nav .owl-prev:hover,
+.owl-theme .owl-nav .owl-next:hover
+{
+	background-color: #f2f2f2;
+}
+
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover
+{
+	opacity: 0.8;
+}
+
+.card-title
+{
+	font-weight: bold;
+	text-align: center;
+}
+
+/* Footer */
+footer
+{
+	background-color: #f2f2f2;
+}
+
+.client-name
+{
+	font-style: italic;
+	font-weight: bold;
+}
+
+@media (max-width: 768px)
+{
+	.card
+{
+	margin-bottom: 20px;
+}
+}
+
+@media (max-width: 576px)
+{
+	.col-md-4
+{
+	width: 100%;
+}
+}

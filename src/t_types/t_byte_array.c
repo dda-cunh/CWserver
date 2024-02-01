@@ -1,5 +1,4 @@
 #include "../../inc/cwserver.h"
-#include <stddef.h>
 
 void	append_str_to_bytes(t_byte_array *bytes, char *str)
 {

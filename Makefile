@@ -11,6 +11,8 @@ INC_DIR		=	inc/
 
 SRC_DIR		=	src/
 
+HTTP_DIR	=	http/
+
 OBJ_DIR		=	temp/
 
 TYPES_DIR	=	t_types/
@@ -26,10 +28,12 @@ SRC			=	$(addprefix $(SRC_DIR),	main.c \
 										$(addprefix $(TYPES_DIR),	t_response.c \
 																	t_server.c \
 																	t_request.c \
-																	t_byte_array.c))
+																	t_byte_array.c) \
+										$(addprefix $(HTTP_DIR),	methods.c))
 
 OBJ_DIRS	=	$(OBJ_DIR)	$(addprefix $(OBJ_DIR), $(TYPES_DIR)) \
-							$(addprefix $(OBJ_DIR), $(UTILS_DIR))
+							$(addprefix $(OBJ_DIR), $(UTILS_DIR)) \
+							$(addprefix $(OBJ_DIR), $(HTTP_DIR))
 
 OBJ 		= 	$(SRC:$(SRC_DIR)%.c=$(OBJ_DIR)%.o)
 

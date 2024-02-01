@@ -82,7 +82,12 @@ t_request   *parse_request(t_byte_array *req_bytes)
 			{
 				request->method = get_method(split[0]);
 				if (split[1])
-				request->path = strdup(split[1]);
+				{
+					if (strcmp(split[1], "/") == 0)
+						request->path = strdup("/index.html");
+					else
+						request->path = strdup(split[1]);
+				}
 			}
 			for (int j = 0; split[j]; j++)
 				free(split[j]);
