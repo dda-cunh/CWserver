@@ -10,8 +10,6 @@
 # include <errno.h>
 # include <fcntl.h>
 
-# define HTML_FOOT_PATH		"/bottom.html"
-# define HTML_HEAD_PATH		"/top.html"
 # define ROOT_PATH			"www"
 
 # define STD_IN				0
