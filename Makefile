@@ -28,6 +28,7 @@ SRC			=	$(addprefix $(SRC_DIR),	main.c \
 										$(addprefix $(TYPES_DIR),	t_response.c \
 																	t_server.c \
 																	t_request.c \
+																	t_str_map.c \
 																	t_byte_array.c) \
 										$(addprefix $(HTTP_DIR),	methods.c))
 

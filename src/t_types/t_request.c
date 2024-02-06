@@ -1,17 +1,53 @@
 #include "../../inc/cwserver.h"
+#include <string.h>
 
-static unsigned char	*seek_carr_ret(unsigned char *bytes, size_t start, size_t len)
+static size_t	seek_carr_ret(unsigned char *bytes, size_t start, size_t len)
 {
-	while (start < len - 1)
+	int	transversed;
+
+	transversed = 0;
+	while (transversed + start < len - 1)
 	{
-		if (bytes[start] == '\r' && bytes[start + 1] == '\n')
+		if (bytes[transversed + start] == '\r'
+			&& bytes[transversed + start + 1] == '\n')
 		{
-			bytes[start] = '\0';
-			return (bytes + start);
+			bytes[transversed + start] = '\0';
+			break ;
 		}
-		start++;
+		transversed++;
 	}
-	return (NULL);
+	return (transversed);
+}
+
+static t_str_map	*parse_cookies(char *cookies_line)
+{
+	t_str_map	*cookie_map;
+	char		**cookies;
+	char		**cookie;
+
+	cookies = ut_split(cookies_line, ';');
+	if (!cookies)
+	{
+		ut_puterror("Error: ", "ut_split failed in parse_cookies");
+		return (NULL);
+	}
+	cookie_map = NULL;
+	for (int i = 0; cookies[i]; i++)
+	{
+		cookie = ut_split(cookies[i], '=');
+		if (!cookie)
+		{
+			ut_puterror("Error: ", "ut_split failed in parse_cookies");
+			cookie_map->dispose(cookie_map);
+			free_split(cookies);
+			return (NULL);
+		}
+		if (cookie[0] && cookie[1])
+			cookie_map->add(cookie_map, cookie[0], cookie[1]);
+		free_split(cookie);
+	}
+	free_split(cookies);
+	return (cookie_map);
 }
 
 static t_http_method	get_method(char *method_str)
@@ -31,15 +67,19 @@ static void	t_request_dispose(t_request *self)
 			self->body->dispose(self->body);
 		if (self->path)
 			free(self->path);
+		if (self->path_extension)
+			free(self->path_extension);
+		if (self->cookies)
+			self->cookies->dispose(self->cookies);
 		free(self);
 	}
 }
 
 t_request   *parse_request(t_byte_array *req_bytes)
 {
-	unsigned char	*line;
-	t_request   	*request;
-	size_t	  		i;
+	t_request		*request;
+	size_t			line_end;
+	size_t			i;
 	char			**split;
 
 	request = (t_request *)malloc(sizeof(t_request));
@@ -51,12 +91,14 @@ t_request   *parse_request(t_byte_array *req_bytes)
 	request->method = HTTP_UNKNOWN;
 	request->body = NULL;
 	request->path = NULL;
+	request->cookies = NULL;
+	request->path_extension = NULL;
 	request->dispose = t_request_dispose;
-	i = -1;
-	while (++i < req_bytes->length)
+	i = 0;
+	while (i < req_bytes->length)
 	{
-		line = seek_carr_ret(req_bytes->bytes, i, req_bytes->length);
-		if (line == req_bytes->bytes + i)
+		line_end = seek_carr_ret(req_bytes->bytes, i, req_bytes->length);
+		if (line_end == 2)
 		{
 			if (i + 2 < req_bytes->length)
 			{
@@ -71,7 +113,7 @@ t_request   *parse_request(t_byte_array *req_bytes)
 		}
 		if (i == 0)
 		{
-			split = ut_split((char *)req_bytes->bytes, ' ');
+			split = ut_split((char *)(req_bytes->bytes + i), ' ');
 			if (!split)
 			{
 				t_request_dispose(request);
@@ -84,30 +126,33 @@ t_request   *parse_request(t_byte_array *req_bytes)
 				if (split[1])
 				{
 					if (strcmp(split[1], "/") == 0)
-						request->path = strdup("/index.html");
+						request->path = strdup("/index");
 					else
+					{
+						request->path_extension = strrchr(split[1], '.');
+						if (request->path_extension && request->path_extension + 1)
+							request->path_extension = strdup(request->path_extension + 1);
+						else
+							request->path_extension = NULL;
 						request->path = strdup(split[1]);
+					}
 				}
 			}
-			for (int j = 0; split[j]; j++)
-				free(split[j]);
-			free(split);
 		}
-		// else
-		// {
-		// 	split = ut_split((char *)req_bytes->bytes + i, ':');
-		// 	if (!split)
-		// 	{
-		// 		free(request);
-		// 		return (NULL);
-		// 	}
-		// 	if (strcmp(split[0], "Host") == 0)
-		// 		request->host = split[1];
-		// 	else if (strcmp(split[0], "Content-Length") == 0)
-		// 		request->content_length = atol(split[1]);
-		// 	else if (strcmp(split[0], "Content-Type") == 0)
-		// 		request->content_type = split[1];
-		// }
+		else
+		{
+			split = ut_split((char *)(req_bytes->bytes + i), ':');
+			if (!split)
+			{
+				request->dispose(request);
+				return (NULL);
+			}
+			if (split[0] && split[1])
+				if (strcmp(split[0], "Cookie") == 0)
+					request->cookies = parse_cookies(split[1]);
+		}
+		free_split(split);
+		i += line_end;
 	}
 	return (request);
 }

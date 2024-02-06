@@ -6,6 +6,7 @@
 # include <stdlib.h>
 # include <unistd.h>
 # include <string.h>
+# include <stdio.h>
 # include <errno.h>
 # include <fcntl.h>
 
@@ -67,20 +68,20 @@ typedef struct s_byte_array
 	void				(*dispose)(struct s_byte_array *self);
 }	t_byte_array;
 
-// typedef struct s_str_map
-// {
-//	struct s_str_map	*next;
-// 	struct s_str_map	*prev;
-// 	char				*value;
-// 	char				*key;
+typedef struct s_str_map
+{
+	struct s_str_map	*next;
+	char				*value;
+	char				*key;
 
-// 	void				(*dispose)(struct s_str_map *self);
-// }	t_str_map;
+	void				(*set)(struct s_str_map *self, char *key, char* value);
+	void				(*add)(struct s_str_map *self, char *key, char* value);
+	char				*(*get)(struct s_str_map *self, char *key);
+	void				(*dispose)(struct s_str_map *self);
+}	t_str_map;
 
 typedef struct s_server
 {
-	t_byte_array		*html_bottom;
-	t_byte_array		*html_top;
 	t_sockaddr_in		address;
 	unsigned long		interface;
 	int					logger_fd;
@@ -100,7 +101,9 @@ typedef struct s_request
 	t_http_method		method;
 	t_byte_array		*body;
 	// t_str_map			*query_strings;
+	char				*path_extension;
 	char				*path;
+	t_str_map			*cookies;
 
 	void				(*dispose)(struct s_request *self);
 }	t_request;
@@ -136,7 +139,7 @@ t_response				*t_response_new(t_byte_array *body, char *stat_message,
 										char *content_type, int status_code);
 void					dump_response(int client_fd, t_response *response
 										, t_server server);
-t_response				*parse_response(t_request request, t_server server);
+t_response				*parse_response(t_request request);
 
 
 /* ************************************************************************** */
@@ -146,18 +149,26 @@ t_byte_array			*t_byte_array_new();
 void					append_to_bytes(t_byte_array *bytes,
 										t_byte_array byte_arr);
 void					append_str_to_bytes(t_byte_array *bytes, char *str);
+char					*byte_arr_to_str(t_byte_array *bytes);
+
+/* ************************************************************************** */
+/*                                 t_str_map                                  */
+/* ************************************************************************** */
+t_str_map				*t_str_map_new(char *key, char *value);
+
 
 /* ************************************************************************** */
 /*                                    UTILS                                   */
 /* ************************************************************************** */
+t_byte_array			*exec_php(char *path, char **args);
 t_byte_array			*read_all_from_file(int fd);
-t_byte_array			*build_html(int fd, t_server server);
+void					*ut_memmove(void *dest, const void *src, size_t n);
+void					ut_puterror(const char *hearder, const char *str);
 void					ut_putendl_fd(int fd, const char *str);
 void					ut_putstr_fd(int fd, const char *str);
-void					ut_puterror(const char *hearder, const char *str);
-void					*ut_memmove(void *dest, const void *src, size_t n);
 void					*ut_memset(void *s, int c, size_t n);
 void					ut_puchar_fd(int fd, char c);
+void					free_split(char **split);
 char					*ut_substr(char const *s, unsigned int start,
 									size_t len);
 char					*ut_strjoin(char const *s1, char const *s2);
@@ -166,10 +177,11 @@ char					*ut_itoa(int i);
 int						open_server_file(char *path, int open_flags
 											, int permissions);
 
+
 /* ************************************************************************** */
 /*                                     HTTP                                   */
 /* ************************************************************************** */
-t_response				*get(t_request req, t_server server);
+t_response				*get(t_request req);
 t_response				*post(t_request req);
 
 #endif

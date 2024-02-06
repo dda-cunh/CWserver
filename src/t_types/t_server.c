@@ -37,7 +37,7 @@ static void	server_up(t_server *server)
 		}
 		ut_putstr_fd(server->logger_fd, "Client requested: ");
 		ut_putendl_fd(server->logger_fd, request->path);
-		dump_response(client, parse_response(*request, *server), *server);
+		dump_response(client, parse_response(*request), *server);
 		close(client);
 		request->dispose(request);
 	}
@@ -51,10 +51,6 @@ static void	server_dispose(t_server *server)
 			close(server->socket);
 		if (server->logger_fd != -1)
 			close(server->logger_fd);
-		if (server->html_top)
-			server->html_top->dispose(server->html_top);
-		if (server->html_bottom)
-			server->html_bottom->dispose(server->html_bottom);
 		free(server);
 	}
 }
@@ -63,13 +59,10 @@ t_server	*t_server_new(unsigned long interface, int domain, int protocol,
 							int service, int port, int backlog)
 {
 	t_server	*server;
-	int			fd;
 
 	server = (t_server *)malloc(sizeof(t_server));
 	if (server == NULL)
 		return (NULL);
-	server->html_top = NULL;
-	server->html_bottom = NULL;
 	server->interface = interface;
 	server->domain = domain;
 	server->protocol = protocol;
@@ -105,23 +98,6 @@ t_server	*t_server_new(unsigned long interface, int domain, int protocol,
 		server_dispose(server);
 		return (NULL);
 	}
-	fd = open_server_file(HTML_HEAD_PATH, O_RDONLY, 0);
-	if (fd < 0)
-	{
-		ut_puterror("Init server error", "Could not open html head file");
-		server_dispose(server);
-		return (NULL);
-	}
-	server->html_top = read_all_from_file(fd);
-	close(fd);
-	fd = open_server_file(HTML_FOOT_PATH, O_RDONLY, 0);
-	if (fd < 0)
-	{
-		ut_puterror("Init server error", "Could not open html foot file");
-		server_dispose(server);
-		return (NULL);
-	}
-	server->html_bottom = read_all_from_file(fd);
 	server->dispose = server_dispose;
 	server->up = server_up;
 	return (server);

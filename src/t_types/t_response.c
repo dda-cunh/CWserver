@@ -1,5 +1,4 @@
 #include "../../inc/cwserver.h"
-#include <string.h>
 
 void	dump_response(int client_fd, t_response *response, t_server server)
 {
@@ -58,13 +57,13 @@ t_response	*t_response_new(t_byte_array *body, char *status_message,
 	return (response);
 }
 
-t_response	*parse_response(t_request request, t_server server)
+t_response	*parse_response(t_request request)
 {
 	if (request.path == NULL)
 		return (t_response_new(NULL, strdup("Internal Server Error"),
 								strdup("text/plain"), 500));
 	if (request.method == HTTP_GET)
-		return (get(request, server));
+		return (get(request));
 	else if (request.method == HTTP_POST)
 		return (post(request));
 	else

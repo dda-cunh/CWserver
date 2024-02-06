@@ -1,13 +1,8 @@
 #include "../../inc/cwserver.h"
 
-static char	*get_content_type(char *path)
+static char	*get_content_type(char *extension)
 {
-	char	*extension;
-
-	extension = strrchr(path, '.');
-	if (extension == NULL)
-		return (strdup("text/plain"));
-	else if (strcmp(extension, ".html") == 0)
+	if (extension == NULL || strcmp(extension, ".html") == 0)
 		return (strdup("text/html"));
 	else if (strcmp(extension, ".css") == 0)
 		return (strdup("text/css"));
@@ -31,34 +26,32 @@ static char	*get_content_type(char *path)
 		return (strdup("text/plain"));
 }
 
-t_response	*get(t_request req, t_server server)
+t_response	*get(t_request req)
 {
 	t_byte_array	*body;
 	char			*content_type;
-	char			*status_message;
-	int				status_code;
+	char			*new_path;
 	int				fd;
 
 	body = NULL;
-	fd = open_server_file(req.path, O_RDONLY, 0);
-	if (fd == -1)
+	content_type = get_content_type(req.path_extension);
+	if (!req.path_extension)
 	{
-		status_message = strdup("Not Found");
-		content_type = strdup("text/plain");
-		status_code = 404;
+		new_path = ut_strjoin(req.path, ".php");
+		body = exec_php(new_path, NULL);
+		free(new_path);
 	}
+	else if (strcmp(req.path_extension, ".php") == 0)
+		return (t_response_new(NULL, strdup("Not Found"), strdup("text/html"), 404));
 	else
 	{
-		content_type = get_content_type(req.path);
-		if (strcmp(content_type, "text/html") == 0)
-			body = build_html(fd, server);
-		else
-			body = read_all_from_file(fd);
+		fd = open_server_file(req.path, O_RDONLY, 0);
+		if (fd == -1)
+			return (t_response_new(NULL, strdup("Not Found"), strdup("text/html"), 404));
+		body = read_all_from_file(fd);
 		close(fd);
-		status_message = strdup("OK");
-		status_code = 200;
 	}
-	return (t_response_new(body, status_message, content_type, status_code));
+	return (t_response_new(body, strdup("OK"), content_type, 200));
 }
 
 //--	NON FUNCTIONAL YET --//

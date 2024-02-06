@@ -1,13 +1,28 @@
 #include "../../inc/cwserver.h"
 
+char	*byte_arr_to_str(t_byte_array *bytes)
+{
+	char	*str;
+
+	str = (char *)malloc(bytes->length + 1);
+	if (!str)
+		return (NULL);
+	ut_memmove(str, bytes->bytes, bytes->length);
+	str[bytes->length] = '\0';
+	return (str);
+}
+
 void	append_str_to_bytes(t_byte_array *bytes, char *str)
 {
 	size_t	append_len;
 
 	append_len = strlen(str);
-	if (append_len+ bytes->length > bytes->capacity)
+	if (append_len + bytes->length > bytes->capacity)
+	{
 		bytes->bytes = (unsigned char *)realloc(bytes->bytes,
 						sizeof(unsigned char) * (bytes->length + append_len));
+		bytes->capacity = bytes->length + append_len;
+	}
 	ut_memmove(bytes->bytes + bytes->length, str, append_len);
 	bytes->length += append_len;
 }
@@ -15,8 +30,11 @@ void	append_str_to_bytes(t_byte_array *bytes, char *str)
 void	append_to_bytes(t_byte_array *bytes, t_byte_array to_append)
 {
 	if (to_append.length + bytes->length > bytes->capacity)
+	{
 		bytes->bytes = (unsigned char *)realloc(bytes->bytes,
 						sizeof(unsigned char) * (bytes->length + to_append.length));
+		bytes->capacity = bytes->length + to_append.length;
+	}
 	ut_memmove(bytes->bytes + bytes->length, to_append.bytes, to_append.length);
 	bytes->length += to_append.length;
 }
