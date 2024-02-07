@@ -26,9 +26,10 @@ static char	*get_content_type(char *extension)
 		return (strdup("text/plain"));
 }
 
-t_response	*get(t_request req)
+void	get(t_request req, int client)
 {
 	t_byte_array	*body;
+	char			*body_str;
 	char			*content_type;
 	char			*new_path;
 	int				fd;
@@ -38,35 +39,89 @@ t_response	*get(t_request req)
 	if (!req.path_extension)
 	{
 		new_path = ut_strjoin(req.path, ".php");
-		body = exec_php(new_path, NULL);
+		fd = open_server_file(new_path, O_RDONLY, 0);
+		if (fd == -1)
+			put_not_found(client);
+		else
+		{
+			close(fd);
+			put_response(client, "HTTP/1.1 200 OK");
+			put_response(client, "Content-Type: ");
+			put_response(client, content_type);
+			put_response(client, "");
+			body = exec_php(new_path, NULL);
+			body_str = byte_arr_to_str(body);
+			body->dispose(body);
+			put_response(client, body_str);
+			free(body_str);
+		}
 		free(new_path);
 	}
 	else if (strcmp(req.path_extension, ".php") == 0)
-		return (t_response_new(NULL, strdup("Not Found"), strdup("text/html"), 404));
+		put_not_found(client);
 	else
 	{
 		fd = open_server_file(req.path, O_RDONLY, 0);
 		if (fd == -1)
-			return (t_response_new(NULL, strdup("Not Found"), strdup("text/html"), 404));
-		body = read_all_from_file(fd);
-		close(fd);
+			put_not_found(client);
+		else
+		{
+			body = read_all_from_file(fd);
+			if (body == NULL)
+				put_server_error(client);
+			else
+			{
+				body_str = byte_arr_to_str(body);
+				body->dispose(body);
+				put_response(client, "HTTP/1.1 200 OK");
+				put_response(client, "Content-Type: ");
+				put_response(client, content_type);
+				put_response(client, "");
+				put_response(client, body_str);
+				free(body_str);
+			}
+			close(fd);
+		}
 	}
-	return (t_response_new(body, strdup("OK"), content_type, 200));
+	free(content_type);
 }
 
-//--	NON FUNCTIONAL YET --//
-t_response	*post(t_request req)
+void	post(t_request req, int client)
 {
-	int	fd;
+	t_byte_array	*body;
+	t_str_map		*args;
+	t_str_map		*form;
+	char			*client_fd_str;
+	char			*content_type;
+	char			*body_str;
+	char			*new_path;
 
-	fd = open_server_file(req.path, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR);
-	if (fd == -1)
-		return (t_response_new(NULL, strdup("Internal Server Error"),
-								strdup("text/plain"), 500));
-	else
+	body = NULL;
+	content_type = get_content_type(req.path_extension);
+	if (!req.path_extension)
 	{
-		write(fd, req.body->bytes, req.body->length);
-		close(fd);
-		return (t_response_new(NULL, strdup("OK"), strdup("text/plain"), 200));
+		new_path = ut_strjoin(req.path, ".php");
+		client_fd_str = ut_itoa(client);
+		args = t_str_map_new("client_fd", client_fd_str);
+		free(client_fd_str);
+		body_str = byte_arr_to_str(req.body);
+		form = map_from_form(body_str);
+		free(body_str);
+		args->link(&args, form);
+		put_response(client, "HTTP/1.1 200 OK");
+		put_response(client, "Content-Type: ");
+		put_response(client, content_type);
+		put_response(client, "");
+		body = exec_php(new_path, args);
+		if (body)
+		{
+			body_str = byte_arr_to_str(body);
+			put_response(client, body_str);
+			body->dispose(body);
+		}
+		args->dispose(args);
+		free(new_path);
 	}
+	else
+		put_not_found(client);
 }

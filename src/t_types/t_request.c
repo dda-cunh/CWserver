@@ -1,23 +1,4 @@
 #include "../../inc/cwserver.h"
-#include <string.h>
-
-static size_t	seek_carr_ret(unsigned char *bytes, size_t start, size_t len)
-{
-	int	transversed;
-
-	transversed = 0;
-	while (transversed + start < len - 1)
-	{
-		if (bytes[transversed + start] == '\r'
-			&& bytes[transversed + start + 1] == '\n')
-		{
-			bytes[transversed + start] = '\0';
-			break ;
-		}
-		transversed++;
-	}
-	return (transversed);
-}
 
 static t_str_map	*parse_cookies(char *cookies_line)
 {
@@ -39,14 +20,14 @@ static t_str_map	*parse_cookies(char *cookies_line)
 		{
 			ut_puterror("Error: ", "ut_split failed in parse_cookies");
 			cookie_map->dispose(cookie_map);
-			free_split(cookies);
+			free_2d_str(cookies);
 			return (NULL);
 		}
 		if (cookie[0] && cookie[1])
-			cookie_map->add(cookie_map, cookie[0], cookie[1]);
-		free_split(cookie);
+			cookie_map->add(&cookie_map, cookie[0], cookie[1]);
+		free_2d_str(cookie);
 	}
-	free_split(cookies);
+	free_2d_str(cookies);
 	return (cookie_map);
 }
 
@@ -78,9 +59,9 @@ static void	t_request_dispose(t_request *self)
 t_request   *parse_request(t_byte_array *req_bytes)
 {
 	t_request		*request;
-	size_t			line_end;
-	size_t			i;
+	char			**lines;
 	char			**split;
+	char			*bytes_str;
 
 	request = (t_request *)malloc(sizeof(t_request));
 	if (!request)
@@ -94,66 +75,70 @@ t_request   *parse_request(t_byte_array *req_bytes)
 	request->cookies = NULL;
 	request->path_extension = NULL;
 	request->dispose = t_request_dispose;
-	i = 0;
-	while (i < req_bytes->length)
+	bytes_str = byte_arr_to_str(req_bytes);
+	if (!bytes_str)
 	{
-		line_end = seek_carr_ret(req_bytes->bytes, i, req_bytes->length);
-		if (line_end == 2)
+		request->dispose(request);
+		return (NULL);
+	}
+	lines = ut_split(bytes_str, '\n');
+	if (!lines)
+	{
+		request->dispose(request);
+		free(bytes_str);
+		return (NULL);
+	}
+	free(bytes_str);
+	for (size_t i = 0; lines[i]; i++)
+	{
+		if (strcmp(lines[i], "\r") == 0)
 		{
-			if (i + 2 < req_bytes->length)
-			{
-				request->body = t_byte_array_new();
-				append_to_bytes(request->body, (t_byte_array)
-												{(req_bytes->bytes + i + 2),
-												req_bytes->length - i - 2, 
-												req_bytes->length - i - 2,
-												NULL});
-			}
+			request->body = t_byte_array_new();
+			i++;
+			if (lines[i])
+				append_str_to_bytes(request->body, lines[i]);
 			break ;
 		}
-		if (i == 0)
+		else if (i == 0)
 		{
-			split = ut_split((char *)(req_bytes->bytes + i), ' ');
-			if (!split)
+			split =  ut_split(lines[i], ' ');
+			if (!split || !split[0] || !split[1] || !split[2])
 			{
+				if (split)
+					free_2d_str(split);
 				t_request_dispose(request);
 				ut_puterror("Error: ", "ut_split failed in parse_request");
 				return (NULL);
 			}
-			if (split[0])
+			request->method = get_method(split[0]);
+			if (strcmp(split[1], "/") == 0)
+				request->path = strdup("/index");
+			else
 			{
-				request->method = get_method(split[0]);
-				if (split[1])
-				{
-					if (strcmp(split[1], "/") == 0)
-						request->path = strdup("/index");
-					else
-					{
-						request->path_extension = strrchr(split[1], '.');
-						if (request->path_extension && request->path_extension + 1)
-							request->path_extension = strdup(request->path_extension + 1);
-						else
-							request->path_extension = NULL;
-						request->path = strdup(split[1]);
-					}
-				}
+				request->path_extension = strrchr(split[1], '.');
+				if (request->path_extension && request->path_extension + 1)
+					request->path_extension = strdup(request->path_extension);
+				else
+					request->path_extension = NULL;
+				request->path = strdup(split[1]);
 			}
 		}
 		else
 		{
-			split = ut_split((char *)(req_bytes->bytes + i), ':');
+			split = ut_split(lines[i], ':');
 			if (!split)
 			{
 				request->dispose(request);
+				free_2d_str(lines);
 				return (NULL);
 			}
 			if (split[0] && split[1])
 				if (strcmp(split[0], "Cookie") == 0)
 					request->cookies = parse_cookies(split[1]);
 		}
-		free_split(split);
-		i += line_end;
+		free_2d_str(split);
 	}
+	free_2d_str(lines);
 	return (request);
 }
 

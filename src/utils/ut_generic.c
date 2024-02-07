@@ -1,5 +1,87 @@
 #include "../../inc/cwserver.h"
 
+static char	*url_decode(char *str)
+{
+	size_t	str_len;
+	size_t	i;
+	size_t	j;
+	char	*decoded_str;
+	char	*decoded;
+
+	if (!str)
+		return (NULL);
+	str_len = strlen(str);
+	decoded = (char *)malloc(str_len + 1);
+	if (!decoded)
+		return (NULL);
+	i = 0;
+	j = 0;
+	while (i < str_len)
+	{
+		if (str[i] == '%')
+		{
+			decoded_str = strndup(str + i + 1, 2);
+			decoded[j] = (char)strtol(decoded_str, NULL, 16);
+			free(decoded_str);
+			i += 3;
+		}
+		else if (str[i] == '+')
+			decoded[j] = ' ';
+		else
+			decoded[j] = str[i];
+		i++;
+		j++;
+	}
+	decoded[j] = '\0';
+	return (decoded);
+}
+
+t_str_map	*url_encoded_to_args(t_byte_array *body)
+{
+	t_str_map	*args;
+	char		**split;
+	char		**pair;
+	char		*decoded;
+	char		*body_str;
+
+	if (!body)
+		return (NULL);
+	body_str = byte_arr_to_str(body);
+	if (!body_str)
+		return (NULL);
+	split = ut_split(body_str, '&');
+	free(body_str);
+	if (!split)
+	{
+		ut_puterror("Error: ", "ut_split failed in url_encoded_to_args");
+		return (NULL);
+	}
+	args = NULL;
+	for (int i = 0; split[i]; i++)
+	{
+		pair = ut_split(split[i], '=');
+		if (!pair)
+		{
+			ut_puterror("Error: ", "ut_split failed in url_encoded_to_args");
+			args->dispose(args);
+			free_2d_str(split);
+			return (NULL);
+		}
+		decoded = url_decode(pair[1]);
+		if (decoded)
+		{
+			if (args == NULL)
+				args = t_str_map_new(pair[0], decoded);
+			else
+				args->add(&args, pair[0], decoded);
+			free(decoded);
+		}
+		free_2d_str(pair);
+	}
+	free_2d_str(split);
+	return (args);
+}
+
 /**
 *	Executes a PHP script with optional arguments.
 *	<p>
@@ -8,7 +90,7 @@
 *	@return				A byte array containing the output of the PHP script.
 *	@see				t_byte_array
 */
-t_byte_array	*exec_php(char *script_path, char **args)
+t_byte_array	*exec_php(char *script_path, t_str_map *args)
 {
 	unsigned char	buffer[FILE_BUFFER_SIZE];
 	t_byte_array	*bytes;
@@ -22,13 +104,13 @@ t_byte_array	*exec_php(char *script_path, char **args)
 	append_str_to_bytes(exec, "php ");
 	append_str_to_bytes(exec, ROOT_PATH);
 	append_str_to_bytes(exec, script_path);
-	if (args)
+	while (args)
 	{
-		for (int i = 0; args[i]; i++)
-		{
-			append_str_to_bytes(exec, " ");
-			append_str_to_bytes(exec, args[i]);
-		}
+		append_str_to_bytes(exec, " ");
+		append_str_to_bytes(exec, args->key);
+		append_str_to_bytes(exec, "=");
+		append_str_to_bytes(exec, args->value);
+		args = args->next;
 	}
 	bin = byte_arr_to_str(exec);
 	exec->dispose(exec);
@@ -43,7 +125,7 @@ t_byte_array	*exec_php(char *script_path, char **args)
 	return (bytes);
 }
 
-void	free_split(char **split)
+void	free_2d_str(char **split)
 {
 	for (int i = 0; split[i]; i++)
 		free(split[i]);
@@ -91,4 +173,15 @@ int open_server_file(char *path, int open_flags, int permissions)
 	fd = open(full_path, open_flags, permissions);
 	free(full_path);
 	return fd;
+}
+
+/**
+*	Checks if a given file descriptor is valid.
+*	<p>
+*	@param fd			The file descriptor.
+*	@return				True if valid.
+*/
+bool	is_valid_fd(int fd)
+{
+	return (fcntl(fd, F_GETFD) != -1 || errno != EBADF);
 }

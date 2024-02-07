@@ -5,6 +5,8 @@ CC 			= 	cc
 
 CFLAGS		= 	-Wall -Wextra -Werror -gdwarf-4 #-fsanitize=address
 
+LINKS		=	-pthread
+
 RM 			= 	rm -rf
 
 INC_DIR		=	inc/
@@ -20,17 +22,18 @@ TYPES_DIR	=	t_types/
 UTILS_DIR	= 	utils/
 
 SRC			=	$(addprefix $(SRC_DIR),	main.c \
-										$(addprefix $(UTILS_DIR),	ut_memory.c \
+										$(addprefix $(UTILS_DIR),	ut_getline.c \
+																	ut_memory.c \
 																	ut_num.c \
 																	ut_output.c \
 																	ut_string.c \
 																	ut_generic.c) \
-										$(addprefix $(TYPES_DIR),	t_response.c \
-																	t_server.c \
+										$(addprefix $(TYPES_DIR),	t_server.c \
 																	t_request.c \
 																	t_str_map.c \
 																	t_byte_array.c) \
-										$(addprefix $(HTTP_DIR),	methods.c))
+										$(addprefix $(HTTP_DIR),	methods.c \
+																	response.c))
 
 OBJ_DIRS	=	$(OBJ_DIR)	$(addprefix $(OBJ_DIR), $(TYPES_DIR)) \
 							$(addprefix $(OBJ_DIR), $(UTILS_DIR)) \
