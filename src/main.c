@@ -4,6 +4,7 @@ int main(void)
 {
 	t_server	*server;
 
+	signal(SIGPIPE, SIG_IGN);
 	server = t_server_new(INADDR_ANY, AF_INET, IPPROTO_TCP,
 							SOCK_STREAM, SERVER_PORT, SERVER_BACKLOG);
 	if (server == NULL)

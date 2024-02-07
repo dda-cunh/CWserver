@@ -96,7 +96,7 @@ t_byte_array	*exec_php(char *script_path, t_str_map *args)
 	t_byte_array	*bytes;
 	t_byte_array	*exec;
 	FILE			*file;
-	char			*bin;
+	char			*exec_str;
 	int				read_bytes;
 
 	bytes = t_byte_array_new();
@@ -112,10 +112,10 @@ t_byte_array	*exec_php(char *script_path, t_str_map *args)
 		append_str_to_bytes(exec, args->value);
 		args = args->next;
 	}
-	bin = byte_arr_to_str(exec);
+	exec_str = byte_arr_to_str(exec);
 	exec->dispose(exec);
-	file = popen(bin, "r");
-	free(bin);
+	file = popen(exec_str, "r");
+	free(exec_str);
 	if (file == NULL)
 		return (bytes);
 	while ((read_bytes = fread(buffer, 1, FILE_BUFFER_SIZE, file)) > 0)

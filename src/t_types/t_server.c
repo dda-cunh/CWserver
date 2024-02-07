@@ -1,5 +1,4 @@
 #include "../../inc/cwserver.h"
-#include <stdlib.h>
 
 static void	*handle_client(void *arg)
 {
@@ -15,30 +14,18 @@ static void	*handle_client(void *arg)
 	while (running)
 	{
 		request = NULL;
-		ut_putstr_fd(server->logger_fd, LOG_PACK);
-		ut_putendl_fd(server->logger_fd, "Waiting for connection...");
 		client = accept(server->socket,
 						(struct sockaddr *)&server->address,
 						(socklen_t *)&(addr_len));
-		if (is_valid_fd(client))
+		if (client != -1)
 		{
 			request = read_request(client);
-			if (!request)
+			if (request)
 			{
-				ut_putendl_fd(server->logger_fd, "Could not read/parse request");
-				continue ;
+				handle_response(*request, client);
+				close(client);
+				request->dispose(request);
 			}
-			if (!is_valid_fd(client))
-			{
-				ut_puterror("Server error", strerror(errno));
-				continue ;
-			}
-			ut_putstr_fd(server->logger_fd, "Client requested: ");
-			ut_putendl_fd(server->logger_fd, request->path);
-			handle_response(*request, client);
-			ut_putstr_fd(server->logger_fd, LOG_PACK);
-			close(client);
-			request->dispose(request);
 		}
 		pthread_mutex_lock(server->mutex);
 		running = server->running;
@@ -54,6 +41,9 @@ static void	*server_manager(void *arg)
 	char		*input;
 
 	server = (t_server *)arg;
+	ut_putendl_fd(STD_OUT, ANSI_COLOR_GREEN);
+	ut_putendl_fd(STD_OUT, "Server is up");
+	ut_putendl_fd(STD_OUT, ANSI_COLOR_RESET);
 	running = true;
 	while (running)
 	{
@@ -94,9 +84,6 @@ static void	server_up(t_server *server)
 			return ;
 		}
 	}
-	ut_putendl_fd(STD_OUT, ANSI_COLOR_GREEN);
-	ut_putendl_fd(STD_OUT, "Server is up");
-	ut_putendl_fd(STD_OUT, ANSI_COLOR_RESET);
 	if (pthread_join(manager, NULL))
 	{
 		ut_puterror("Server error", strerror(errno));
@@ -119,8 +106,6 @@ static void	server_dispose(t_server *server)
 	{
 		if (server->socket != -1)
 			close(server->socket);
-		if (server->logger_fd != -1)
-			close(server->logger_fd);
 		if (server->mutex)
 		{
 			pthread_mutex_destroy(server->mutex);
@@ -149,13 +134,6 @@ t_server	*t_server_new(unsigned long interface, int domain, int protocol,
 	server->address.sin_family = domain;
 	server->address.sin_addr.s_addr = htonl(interface);
 	server->address.sin_port = htons(port);
-	server->logger_fd = open("server.log", O_CREAT | O_WRONLY, 0644);
-	if (server->logger_fd == -1)
-	{
-		ut_puterror("Init server error", strerror(errno));
-		free(server);
-		return (NULL);
-	}
 	server->socket = socket(domain, service, protocol);
 	if (server->socket == -1)
 	{

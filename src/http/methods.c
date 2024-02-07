@@ -29,8 +29,9 @@ static char	*get_content_type(char *extension)
 void	get(t_request req, int client)
 {
 	t_byte_array	*body;
-	char			*body_str;
+	t_str_map		*args;
 	char			*content_type;
+	char			*client_fd_str;
 	char			*new_path;
 	int				fd;
 
@@ -45,15 +46,20 @@ void	get(t_request req, int client)
 		else
 		{
 			close(fd);
-			put_response(client, "HTTP/1.1 200 OK");
-			put_response(client, "Content-Type: ");
-			put_response(client, content_type);
-			put_response(client, "");
-			body = exec_php(new_path, NULL);
-			body_str = byte_arr_to_str(body);
+			client_fd_str = ut_itoa(client);
+			args = t_str_map_new("CLIENT_FD", client_fd_str);
+			free(client_fd_str);
+			args->add(&args, "REQUEST_METHOD", "GET");
+			if (req.cookies)
+				args->link(&args, req.cookies->clone(req.cookies));
+			put_str_response(client, "HTTP/1.1 200 OK");
+			ut_putstr_fd(client, "Content-Type: ");
+			put_str_response(client, content_type);
+			body = exec_php(new_path, args);
+			args->dispose(args);
+			put_str_response(client, "");
+			put_bytes_response(client, body);
 			body->dispose(body);
-			put_response(client, body_str);
-			free(body_str);
 		}
 		free(new_path);
 	}
@@ -71,14 +77,12 @@ void	get(t_request req, int client)
 				put_server_error(client);
 			else
 			{
-				body_str = byte_arr_to_str(body);
+				put_str_response(client, "HTTP/1.1 200 OK");
+				ut_putstr_fd(client, "Content-Type: ");
+				put_str_response(client, content_type);
+				put_str_response(client, "");
+				put_bytes_response(client, body);
 				body->dispose(body);
-				put_response(client, "HTTP/1.1 200 OK");
-				put_response(client, "Content-Type: ");
-				put_response(client, content_type);
-				put_response(client, "");
-				put_response(client, body_str);
-				free(body_str);
 			}
 			close(fd);
 		}
@@ -100,27 +104,31 @@ void	post(t_request req, int client)
 	content_type = get_content_type(req.path_extension);
 	if (!req.path_extension)
 	{
-		new_path = ut_strjoin(req.path, ".php");
 		client_fd_str = ut_itoa(client);
-		args = t_str_map_new("client_fd", client_fd_str);
+		args = t_str_map_new("CLIENT_FD", client_fd_str);
 		free(client_fd_str);
+		args->add(&args, "REQUEST_METHOD", "POST");
+		if (req.cookies)
+			args->link(&args, req.cookies->clone(req.cookies));
 		body_str = byte_arr_to_str(req.body);
 		form = map_from_form(body_str);
 		free(body_str);
 		args->link(&args, form);
-		put_response(client, "HTTP/1.1 200 OK");
-		put_response(client, "Content-Type: ");
-		put_response(client, content_type);
-		put_response(client, "");
+		put_str_response(client, "HTTP/1.1 200 OK");
+		ut_putstr_fd(client, "Content-Type: ");
+		put_str_response(client, content_type);
+		free(content_type);
+		new_path = ut_strjoin(req.path, ".php");
 		body = exec_php(new_path, args);
+		args->dispose(args);
+		free(new_path);
+		put_str_response(client, "");
 		if (body)
 		{
-			body_str = byte_arr_to_str(body);
-			put_response(client, body_str);
+			put_bytes_response(client, body);
 			body->dispose(body);
 		}
 		args->dispose(args);
-		free(new_path);
 	}
 	else
 		put_not_found(client);

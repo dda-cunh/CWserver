@@ -1,4 +1,5 @@
 <?php
-	$address = "http://localhost:8080/";
-	$dbName = "webdb";
+	$g_address = "http://localhost:8080/";
+	$g_www_path = "www/";
+	$g_dbName = "webdb";
 ?>

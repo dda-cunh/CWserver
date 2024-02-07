@@ -1,5 +1,4 @@
 <?php
-	include_once("env.php");
 	include_once("inc.php");
 
 	$connection = getDatabaseConnection();
@@ -35,6 +34,12 @@
 		quantity INTEGER NOT NULL,
 		foreign key (user_id) references users(id),
 		foreign key (item_id) references items(id)
+	)";
+	$sql = "CREATE TABLE IF NOT EXISTS session (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id INTEGER NOT NULL,
+		session_hash TEXT NOT NULL,
+		foreign key (user_id) references users(id)
 	)";
 	$connection->exec($sql);
 	$connection = null;

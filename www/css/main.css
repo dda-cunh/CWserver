@@ -1,9 +1,3 @@
-body
-{
-	font-family: sans-serif;
-	color: #333;
-}
-
 a
 {
 	color: #2196f3;
@@ -27,6 +21,25 @@ header
 body
 {
 	padding-top: 70px;
+	font-family: sans-serif;
+	color: #333;
+}
+
+main
+{
+	padding-top: 70px;
+	font-family: sans-serif;
+	color: #333;
+	background-color: #f2f2f2;
+}
+
+footer
+{
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	position: fixed;
+    bottom: 0;
+	z-index: 1000;
+	text-align: center;
 }
 
 .navbar
@@ -43,6 +56,14 @@ body
 .nav-item
 {
 	margin-right: 15px;
+}
+
+.alert
+{
+	margin-top: 2em;
+	color: #721c24;
+	background-color: #f8d7da;
+	border-color: #f5c6cb;
 }
 
 /* Hero section */
@@ -107,12 +128,6 @@ body
 {
 	font-weight: bold;
 	text-align: center;
-}
-
-/* Footer */
-footer
-{
-	background-color: #f2f2f2;
 }
 
 .client-name

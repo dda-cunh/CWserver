@@ -24,7 +24,12 @@ static t_str_map	*parse_cookies(char *cookies_line)
 			return (NULL);
 		}
 		if (cookie[0] && cookie[1])
-			cookie_map->add(&cookie_map, cookie[0], cookie[1]);
+		{
+			if (!cookie_map)
+				cookie_map = t_str_map_new(cookie[0], cookie[1]);
+			else
+				cookie_map->add(&cookie_map, cookie[0], cookie[1]);
+		}
 		free_2d_str(cookie);
 	}
 	free_2d_str(cookies);

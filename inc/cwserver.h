@@ -11,6 +11,7 @@
 # include <stdio.h>
 # include <errno.h>
 # include <fcntl.h>
+# include <signal.h>
 
 # define ROOT_PATH			"www"
 
@@ -31,7 +32,7 @@
 # endif
 
 # ifndef SERVER_BACKLOG
-#  define SERVER_BACKLOG	10
+#  define SERVER_BACKLOG	50
 # endif
 
 # ifndef SOCKET_TIMEOUT
@@ -46,8 +47,6 @@
 # define ANSI_COLOR_GREEN	"\x1b[32m"
 # define ANSI_COLOR_RESET	"\x1b[0m"
 # define ANSI_COLOR_RED		"\x1b[31m"
-
-# define LOG_PACK			"----------------------------------------\n"
 
 typedef struct sockaddr_in	t_sockaddr_in;
 
@@ -73,6 +72,7 @@ typedef struct s_str_map
 	char				*value;
 	char				*key;
 
+	struct s_str_map	*(*clone)(struct s_str_map *self);
 	void				(*set)(struct s_str_map *self, char *key, char* value);
 	void				(*add)(struct s_str_map **self, char *key, char* value);
 	void				(*link)(struct s_str_map **self, struct s_str_map *map);
@@ -86,7 +86,6 @@ typedef struct s_server
 	t_sockaddr_in		address;
 	unsigned long		interface;
 	bool				running;
-	int					logger_fd;
 	int					protocol;	
 	int					backlog;
 	int					service;	
@@ -169,7 +168,8 @@ char					*get_next_line(int fd);
 void					handle_response(t_request request, int client_fd);
 void					get(t_request req, int client_fd);
 void					post(t_request req, int client_fd);
-void					put_response(int client_fd, char *line);
+void					put_bytes_response(int client_fd, t_byte_array *bytes);
+void					put_str_response(int client_fd, char *line);
 void					put_server_error(int client);
 void					put_not_found(int client);
 

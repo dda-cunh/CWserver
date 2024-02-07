@@ -1,5 +1,22 @@
 #include "../../inc/cwserver.h"
 
+
+static t_str_map	*clone(t_str_map *self)
+{
+	t_str_map	*clone;
+
+	clone = NULL;
+	while (self)
+	{
+		if (!clone)
+			clone = t_str_map_new(self->key, self->value);
+		else
+			clone->add(&clone, self->key, self->value);
+		self = self->next;
+	}
+	return (clone);
+}
+
 static void	set(t_str_map *self, char *key, char *value)
 {
 	while (self)
@@ -109,11 +126,17 @@ t_str_map	*map_from_form(char *str)
 		{
 			ut_puterror("Error: ", "ut_split failed in map_from_str");
 			free_2d_str(split);
-			map->dispose(map);
+			if (map)
+				map->dispose(map);
 			return (NULL);
 		}
 		if (pair[0] && pair[1])
-			map->add(&map, pair[0], pair[1]);
+		{
+			if (!map)
+				map = t_str_map_new(pair[0], pair[1]);
+			else
+				map->add(&map, pair[0], pair[1]);
+		}
 		free_2d_str(pair);
 	}
 	free_2d_str(split);
@@ -135,5 +158,6 @@ t_str_map	*t_str_map_new(char *key, char *value)
 	map->link = _link;
 	map->get = _get;
 	map->dispose = dispose;
+	map->clone = clone;
 	return (map);
 }

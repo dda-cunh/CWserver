@@ -1,5 +1,5 @@
 <?php
-   include("top.php");
+   include_once("top.php");
 ?>
 
 <main class="container mt-5 mb-5">
@@ -16,7 +16,7 @@
    <div class="row">
       <div class="col-md-4">
          <div class="card">
-            <img src="img/category_bedroom.png" alt="Category 1 image" class="card-img-top">
+            <img src="img/category_bedroom.png" alt="Bedroom image" class="card-img-top">
             <div class="card-body">
                <h5 class="card-title">Bedroom</h5>
                <a href="#" class="btn btn-primary">Shop Now</a>
