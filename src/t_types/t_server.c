@@ -19,7 +19,7 @@ static void	*handle_client(void *arg)
 						(socklen_t *)&(addr_len));
 		if (client != -1)
 		{
-			request = read_request(client);
+			request = read_request(client, server);
 			if (request)
 			{
 				handle_response(*request, client);
@@ -27,9 +27,9 @@ static void	*handle_client(void *arg)
 				request->dispose(request);
 			}
 		}
-		pthread_mutex_lock(server->mutex);
+		pthread_mutex_lock(server->running_mutex);
 		running = server->running;
-		pthread_mutex_unlock(server->mutex);
+		pthread_mutex_unlock(server->running_mutex);
 	}
 	return (NULL);
 }
@@ -55,9 +55,9 @@ static void	*server_manager(void *arg)
 				ut_putendl_fd(STD_OUT, ANSI_COLOR_RED);
 				ut_putendl_fd(STD_OUT, "Server is shutting down...");
 				ut_putendl_fd(STD_OUT, ANSI_COLOR_RESET);
-				pthread_mutex_lock(server->mutex);
+				pthread_mutex_lock(server->running_mutex);
 				server->running = false;
-				pthread_mutex_unlock(server->mutex);
+				pthread_mutex_unlock(server->running_mutex);
 				running = false;
 			}
 			free(input);
@@ -106,10 +106,17 @@ static void	server_dispose(t_server *server)
 	{
 		if (server->socket != -1)
 			close(server->socket);
-		if (server->mutex)
+		if (server->logger_fd != -1)
+			close(server->logger_fd);
+		if (server->running_mutex)
 		{
-			pthread_mutex_destroy(server->mutex);
-			free(server->mutex);
+			pthread_mutex_destroy(server->running_mutex);
+			free(server->running_mutex);
+		}
+		if (server->output_mutex)
+		{
+			pthread_mutex_destroy(server->output_mutex);
+			free(server->output_mutex);
 		}
 		free(server);
 	}
@@ -124,7 +131,8 @@ t_server	*t_server_new(unsigned long interface, int domain, int protocol,
 	server = (t_server *)malloc(sizeof(t_server));
 	if (server == NULL)
 		return (NULL);
-	server->mutex = NULL;
+	server->running_mutex = NULL;
+	server->output_mutex = NULL;
 	server->interface = interface;
 	server->domain = domain;
 	server->protocol = protocol;
@@ -135,6 +143,7 @@ t_server	*t_server_new(unsigned long interface, int domain, int protocol,
 	server->address.sin_addr.s_addr = htonl(interface);
 	server->address.sin_port = htons(port);
 	server->socket = socket(domain, service, protocol);
+	server->logger_fd = -1;
 	if (server->socket == -1)
 	{
 		ut_puterror("Init server error", strerror(errno));
@@ -161,14 +170,23 @@ t_server	*t_server_new(unsigned long interface, int domain, int protocol,
 		server_dispose(server);
 		return (NULL);
 	}
-	server->mutex = malloc(sizeof(pthread_mutex_t));
-	if (server->mutex == NULL)
+	server->running_mutex = malloc(sizeof(pthread_mutex_t));
+	if (server->running_mutex == NULL)
 	{
 		ut_puterror("Init server error", strerror(errno));
 		server_dispose(server);
 		return (NULL);
 	}
-	pthread_mutex_init(server->mutex, NULL);
+	pthread_mutex_init(server->running_mutex, NULL);
+	server->output_mutex = malloc(sizeof(pthread_mutex_t));
+	if (server->output_mutex == NULL)
+	{
+		ut_puterror("Init server error", strerror(errno));
+		server_dispose(server);
+		return (NULL);
+	}
+	server->logger_fd = open("server.log", O_CREAT | O_WRONLY | O_TRUNC, 0644);
+	pthread_mutex_init(server->output_mutex, NULL);
 	server->dispose = server_dispose;
 	server->up = server_up;
 	server->running = true;

@@ -1,4 +1,5 @@
 #include "../../inc/cwserver.h"
+#include <bits/pthreadtypes.h>
 
 static t_str_map	*parse_cookies(char *cookies_line)
 {
@@ -61,7 +62,7 @@ static void	t_request_dispose(t_request *self)
 	}
 }
 
-t_request   *parse_request(t_byte_array *req_bytes)
+static t_request   *parse_request(t_byte_array *req_bytes)
 {
 	t_request		*request;
 	char			**lines;
@@ -147,11 +148,12 @@ t_request   *parse_request(t_byte_array *req_bytes)
 	return (request);
 }
 
-t_request	*read_request(int client_fd)
+t_request	*read_request(int client_fd, t_server *server)
 {
 	unsigned char	buffer[SOCK_BUFFER_SIZE];
 	t_byte_array	*bytes;
 	t_request		*request;
+	char			*req_str;
 	long			bytes_read;
 
 	request = NULL;
@@ -167,6 +169,16 @@ t_request	*read_request(int client_fd)
 	else
 	{
 		append_to_bytes(bytes, (t_byte_array){buffer, bytes_read, bytes_read, NULL});
+		req_str = byte_arr_to_str(bytes);
+		if (!req_str)
+		{
+			bytes->dispose(bytes);
+			return (NULL);
+		}
+		pthread_mutex_lock(server->output_mutex);
+		ut_putendl_fd(server->logger_fd, req_str);
+		free(req_str);
+		pthread_mutex_unlock(server->output_mutex);
 		request = parse_request(bytes);
 	}
 	bytes->dispose(bytes);

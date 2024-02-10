@@ -82,10 +82,12 @@ typedef struct s_str_map
 
 typedef struct s_server
 {
-	pthread_mutex_t		*mutex;
+	pthread_mutex_t		*running_mutex;
+	pthread_mutex_t		*output_mutex;
 	t_sockaddr_in		address;
 	unsigned long		interface;
 	bool				running;
+	int					logger_fd;
 	int					protocol;	
 	int					backlog;
 	int					service;	
@@ -119,10 +121,7 @@ t_server				*t_server_new(unsigned long interface, int domain,
 /* ************************************************************************** */
 /*                                 t_request                                  */
 /* ************************************************************************** */
-t_request				*parse_request(t_byte_array *req_bytes);
-t_request				*read_request(int client_fd);
-
-
+t_request				*read_request(int client_fd, t_server *server);
 
 /* ************************************************************************** */
 /*                               t_byte_array                                 */
@@ -150,7 +149,7 @@ void					ut_puterror(const char *hearder, const char *str);
 void					ut_putendl_fd(int fd, const char *str);
 void					ut_putstr_fd(int fd, const char *str);
 void					*ut_memset(void *s, int c, size_t n);
-void					ut_puchar_fd(int fd, char c);
+void					ut_putchar_fd(int fd, char c);
 void					free_2d_str(char **split);
 char					*ut_substr(char const *s, unsigned int start,
 									size_t len);

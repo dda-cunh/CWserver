@@ -128,7 +128,6 @@ void	post(t_request req, int client)
 			put_bytes_response(client, body);
 			body->dispose(body);
 		}
-		args->dispose(args);
 	}
 	else
 		put_not_found(client);

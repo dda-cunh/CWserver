@@ -1,9 +1,9 @@
 <?php
 	include_once("env.php");
 
-	if (!function_exists("passHash"))
+	if (!function_exists("pass_hash"))
 	{
-		function	passHash($password)
+		function pass_hash($password)
 		{
 			return hash("whirlpool", $password);
 		}
@@ -14,6 +14,17 @@
 		function	put_error($error)
 		{
 			echo "<div class=\"alert alert-danger\" role=\"alert\">" . $error . "</div>";
+		}
+	}
+
+	if (!function_exists("get_random_n_string"))
+	{
+		function	get_random_n_string($n)
+		{
+			$rand = "";
+			for ($i = 0; $i < $n; $i++)
+				$rand .= chr(rand(33, 126));
+			return $rand;
 		}
 	}
 
@@ -54,20 +65,6 @@
 		}
 	}
 
-	if (!class_exists("dbConnection"))
-	{
-		class dbConnection extends SQLite3
-		{
-			public string $path;
-
-			function __construct($path)
-			{
-				$this->path = $path;
-				$this->open($path, SQLITE3_OPEN_CREATE | SQLITE3_OPEN_READWRITE);
-			}
-		 }
-	}
-
 	if (!function_exists("getDatabaseConnection"))
 	{
 		function	getDatabaseConnection()
@@ -75,29 +72,58 @@
 			global	$g_www_path;
 			global	$g_dbName;
 
-			return (new dbConnection($g_www_path . "data/" . $g_dbName));
+			return (new PDO("sqlite:" . $g_www_path . "data/" . $g_dbName . ".sqlite"));
 		}
 	}
 
-	if (!function_exists("get_user"))
+	if (!function_exists("get_user_by_hash"))
 	{
-		function	get_user($session_hash)
+		function	get_user_by_hash($session_hash)
 		{
 			$conn = getDatabaseConnection();
-			$sql = "SELECT * FROM session WHERE session_hash = :session_hash";
+			if (!$conn)
+				return (null);
+			$sql = "SELECT id FROM users WHERE session_hash = :session_hash";
 			$stmt = $conn->prepare($sql);
-			$stmt->bindParam(":session_hash", $session_hash, SQLITE3_TEXT);
-			$set = $stmt->execute();
-			$result = $set->fetchArray();
-			if (isset($result['id']) == false)
-				return null;
-			$sql = "SELECT * FROM users WHERE id = :id";
-			$stmt = $conn->prepare($sql);
-			$stmt->bindParam(":id", $result['user_id'], SQLITE3_INTEGER);
-			$set = $stmt->execute();
-			$result = $set->fetchArray();
+			$stmt->bindParam(":session_hash", $session_hash, PDO::PARAM_STR);
+			$stmt->execute();
 			$conn = null;
-			return $result;
+			return ($stmt->fetchAll());
+		}
+	}
+
+	if (!function_exists("get_items_by_type"))
+	{
+		function	get_items_by_type($type)
+		{
+			$conn = getDatabaseConnection();
+			if (!$conn)
+				return (null);
+			$sql = "SELECT items.id, items.name, price, img_path FROM items INNER JOIN item_type ON items.type = item_type.id WHERE item_type.name = :type";
+			$stmt = $conn->prepare($sql);
+			$stmt->bindParam(":type", $type, PDO::PARAM_STR);
+			$stmt->execute();
+			$conn = null;
+			return ($stmt->fetchAll());
+		}
+	}
+
+	if (!function_exists("get_user_cart_session"))
+	{
+		function	get_user_cart_session($session_hash)
+		{
+			$user = get_user_by_hash($session_hash);
+			if ($user == null)
+				return (null);
+			$conn = getDatabaseConnection();
+			if (!$conn)
+				return (null);
+			$sql = "SELECT items.id, items.name, price, img_path, quantity FROM items INNER JOIN cart ON items.id = cart.item_id WHERE cart.user_id = :user_id";
+			$stmt = $conn->prepare($sql);
+			$stmt->bindParam(":user_id", $user['id'], PDO::PARAM_INT);
+			$stmt->execute();
+			$conn = null;
+			return ($stmt->fetchAll());
 		}
 	}
 ?>

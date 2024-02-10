@@ -1,5 +1,5 @@
 <?php
-    include_once("top.php");
+	include_once("top.php");
 	if ($CURR_ENV['SESSION_HASH'] != 0)
 	{
 		echo '

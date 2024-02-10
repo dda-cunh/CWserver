@@ -1,62 +1,67 @@
 <?php
-	include_once("top.php");
+	include_once("inc.php");
 
+	$CURR_ENV = parse_args(array_slice($argv, 1));
 	if (isset($CURR_ENV['REQUEST_METHOD']) && $CURR_ENV['REQUEST_METHOD'] == "POST"
 		&&( isset($CURR_ENV['BTN_LOGIN']) || isset($CURR_ENV['BTN_REGISTER'])))
 	{
 		$connection = getDatabaseConnection();
-		$user_id = 0;
 		if ($connection == null)
 		{
 			put_error("Failed to connect to database\n");
 			goto end;
 		}
+		$SESSION_HASH = pass_hash(get_random_n_string(10));
+		$password = pass_hash($CURR_ENV['password']);
 		if (isset($CURR_ENV['BTN_LOGIN']))
 		{
-			$password = passHash($CURR_ENV['password']);
 			$sql = "SELECT * FROM users WHERE name = :name AND password = :password";
 			$stmt = $connection->prepare($sql);
-			$stmt->bindParam(":name", $CURR_ENV['username'], SQLITE3_TEXT);
-			$stmt->bindParam(":password", $password, SQLITE3_TEXT);
-			$set = $stmt->execute();
-			$result = $set->fetchArray();
+			$stmt->bindParam(":name", $CURR_ENV['username'], PDO::PARAM_STR);
+			$stmt->bindParam(":password", $password, PDO::PARAM_STR);
+			$result = $stmt->fetchAll();
 			if (isset($result['id']) == false)
 			{
 				put_error("Failed to login\n");
 				goto end;
 			}
-			$user_id = $result['id'];
+			if (isset($result['session_hash']))
+			{
+				if ($result['session_hash'] == "-1")
+				{
+					$sql = "UPDATE users SET session_hash = :session_hash WHERE id = :id";
+					$stmt = $connection->prepare($sql);
+					$stmt->bindParam(":session_hash", $SESSION_HASH, PDO::PARAM_STR);
+					$stmt->bindParam(":id", $result['id'], PDO::PARAM_INT);
+					$stmt->execute();
+				}
+				else
+					$SESSION_HASH = $result['session_hash'];
+			}
 		}
 		else
 		{
-			$password = passHash($CURR_ENV['password']);
 			$sql = "SELECT * FROM users WHERE name = :name";
 			$stmt = $connection->prepare($sql);
-			$stmt->bindParam(":name", $CURR_ENV['username'], SQLITE3_TEXT);
-			$set = $stmt->execute();
-			$result = $set->fetchArray();
+			$stmt->bindParam(":name", $CURR_ENV['username'], PDO::PARAM_STR);
+			$stmt->execute();
+			$result = $stmt->fetchAll();;
 			if (isset($result['id']) == true)
 			{
 				put_error("Username already exists\n");
 				goto end;
 			}
-			$sql = "INSERT INTO users (name, password) VALUES (:name, :password)";
+			$sql = "INSERT INTO users (name, password, session_hash) VALUES (:name, :password, :session_hash)";
 			$stmt = $connection->prepare($sql);
-			$stmt->bindParam(":name", $CURR_ENV['username'], SQLITE3_TEXT);
-			$stmt->bindParam(":password", $password, SQLITE3_TEXT);
+			$stmt->bindParam(":name", $CURR_ENV['username'], PDO::PARAM_STR);
+			$stmt->bindParam(":password", $password, PDO::PARAM_STR);
+			$stmt->bindParam(":session_hash", $SESSION_HASH, PDO::PARAM_STR);
 			$stmt->execute();
-			$user_id = $connection->lastInsertRowID();
 		}
-		$sql = "INSERT INTO session (user_id, session_hash) VALUES (:user_id, :session_hash)";
-		$stmt = $connection->prepare($sql);
-		$stmt->bindParam(":user_id", $user_id, SQLITE3_INTEGER);
-		$SESSION_HASH = passHash(random_bytes(64));
-		$stmt->bindParam(":session_hash", $CURR_ENV['SESSION_HASH'], SQLITE3_TEXT);
-		$stmt->execute();
 		set_cookie($CURR_ENV['CLIENT_FD'], "SESSION_HASH", $SESSION_HASH, 30);
 		end:
 		$connection = null;
 	}
-	set_header($CURR_ENV['CLIENT_FD'], "Location", "/index");
-	exit();
+	
+	include_once("index.php");
 ?>
