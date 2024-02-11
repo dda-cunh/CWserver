@@ -3,7 +3,7 @@ NAME		= 	cwserver
 
 CC 			= 	cc
 
-CFLAGS		= 	-Wall -Wextra -Werror -gdwarf-4 #-fsanitize=address
+CFLAGS		= 	-Wall -Wextra -Werror #-gdwarf-4 #-fsanitize=address
 
 LINKS		=	-pthread
 

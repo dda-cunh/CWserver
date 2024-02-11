@@ -1,5 +1,5 @@
 #include "../../inc/cwserver.h"
-#include <bits/pthreadtypes.h>
+
 
 static t_str_map	*parse_cookies(char *cookies_line)
 {
@@ -131,6 +131,8 @@ static t_request   *parse_request(t_byte_array *req_bytes)
 		}
 		else
 		{
+			if (lines[i][strlen(lines[i]) - 1] == '\r')
+				lines[i][strlen(lines[i]) - 1] = '\0';
 			split = ut_split(lines[i], ':');
 			if (!split)
 			{

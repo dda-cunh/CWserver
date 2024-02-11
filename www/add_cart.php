@@ -17,8 +17,8 @@
 		$stmt = $connection->prepare($sql);
 		$stmt->bindParam(":user_id", $user['id'], PDO::PARAM_INT);
 		$stmt->bindParam(":item_id", $CURR_ENV['item_id'], PDO::PARAM_INT);
-		$set = $stmt->execute();
-		$result = $set->fetchAll();
+		$stmt->execute();
+		$result = $stmt->fetchAll();
 		if ($result)
 		{
 			$sql = "UPDATE cart SET quantity = quantity + 1 WHERE user_id = :user_id AND item_id = :item_id";
@@ -26,7 +26,6 @@
 			$stmt->bindParam(":user_id", $user['id'], PDO::PARAM_INT);
 			$stmt->bindParam(":item_id", $CURR_ENV['item_id'], PDO::PARAM_INT);
 			$stmt->execute();
-			$connection = null;
 		}
 		else
 		{
@@ -35,7 +34,7 @@
 			$stmt->bindParam(":user_id", $user['id'], PDO::PARAM_INT);
 			$stmt->bindParam(":item_id", $CURR_ENV['item_id'], PDO::PARAM_INT);
 			$stmt->execute();
-			$connection = null;
 		}
+		$connection = null;
 	}
 ?>

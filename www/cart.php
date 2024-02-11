@@ -14,7 +14,7 @@
 		put_error("Failed to get cart\n");
 		goto end;
 	}
-	while (($item = $items->fetchAll()))
+	foreach ($items as $item)
 	{
 		echo '<div class="container">
 				<div class="col-md-4">
@@ -28,7 +28,9 @@
 				</div>
 				<div class="col-md-4">
 					<h5>' . $item['quantity'] . '</h5>
-			</div>';
+				</div>
+			</div>
+			</br>';
 	}
 	end:
 	echo '	</div>

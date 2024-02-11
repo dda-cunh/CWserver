@@ -83,12 +83,12 @@
 			$conn = getDatabaseConnection();
 			if (!$conn)
 				return (null);
-			$sql = "SELECT id FROM users WHERE session_hash = :session_hash";
+			$sql = 'SELECT id FROM users WHERE session_hash = :session_hash';
 			$stmt = $conn->prepare($sql);
 			$stmt->bindParam(":session_hash", $session_hash, PDO::PARAM_STR);
 			$stmt->execute();
 			$conn = null;
-			return ($stmt->fetchAll());
+			return ($stmt->fetch());
 		}
 	}
 
